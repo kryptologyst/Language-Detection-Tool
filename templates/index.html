@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Detection Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .language-badge {
+            font-size: 0.9em;
+            padding: 0.5em 1em;
+        }
+        .confidence-bar {
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .result-card {
+            display: none;
+        }
+        .sample-text {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .sample-text:hover {
+            background-color: #f8f9fa;
+        }
+        .stats-card {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        .history-item {
+            border-left: 4px solid #007bff;
+            padding-left: 15px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body class="gradient-bg">
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center text-white mb-4">
+                    <h1 class="display-4 fw-bold">
+                        <i class="fas fa-language me-3"></i>
+                        Language Detection Tool
+                    </h1>
+                    <p class="lead">Detect languages with confidence scores using advanced NLP models</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Main Detection Interface -->
+            <div class="col-lg-8">
+                <div class="card card-hover mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-search me-2"></i>Language Detection</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="detectionForm">
+                            <div class="mb-3">
+                                <label for="inputText" class="form-label">Enter text to analyze:</label>
+                                <textarea class="form-control" id="inputText" rows="4" 
+                                    placeholder="Enter text in any language..."></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="confidenceThreshold" class="form-label">Confidence Threshold:</label>
+                                    <input type="range" class="form-range" id="confidenceThreshold" 
+                                        min="0" max="1" step="0.1" value="0.5">
+                                    <div class="d-flex justify-content-between">
+                                        <small>0.0</small>
+                                        <small id="thresholdValue">0.5</small>
+                                        <small>1.0</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                                        <i class="fas fa-search me-2"></i>Detect Language
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Loading Spinner -->
+                        <div class="loading-spinner text-center mt-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Detecting...</span>
+                            </div>
+                            <p class="mt-2">Analyzing text...</p>
+                        </div>
+
+                        <!-- Results -->
+                        <div class="result-card mt-4">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-check-circle me-2"></i>Detection Results</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="detectionResult"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sample Texts -->
+                <div class="card card-hover mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Sample Texts</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Click on any sample text to test the detection:</p>
+                        <div id="sampleTexts" class="row"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Statistics -->
+                <div class="card stats-card card-hover mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="statsContent">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Loading stats...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent History -->
+                <div class="card card-hover mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent History</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="historyContent">
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                <p class="mt-2">Loading history...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batch Processing -->
+                <div class="card card-hover">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Batch Processing</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="batchForm">
+                            <div class="mb-3">
+                                <label for="batchTexts" class="form-label">Multiple texts (one per line):</label>
+                                <textarea class="form-control" id="batchTexts" rows="4" 
+                                    placeholder="Enter multiple texts, one per line..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="fas fa-layer-group me-2"></i>Process Batch
+                            </button>
+                        </form>
+                        <div id="batchResults" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update threshold display
+        document.getElementById('confidenceThreshold').addEventListener('input', function() {
+            document.getElementById('thresholdValue').textContent = this.value;
+        });
+
+        // Load sample texts
+        async function loadSampleTexts() {
+            try {
+                const response = await fetch('/samples');
+                const data = await response.json();
+                const container = document.getElementById('sampleTexts');
+                
+                data.samples.forEach(sample => {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-6 mb-2';
+                    col.innerHTML = `
+                        <div class="sample-text p-2 border rounded" onclick="useSampleText('${sample.text.replace(/'/g, "\\'")}')">
+                            <small class="text-muted">${sample.language_name}</small><br>
+                            <strong>${sample.text}</strong>
+                        </div>
+                    `;
+                    container.appendChild(col);
+                });
+            } catch (error) {
+                console.error('Error loading sample texts:', error);
+            }
+        }
+
+        // Use sample text
+        function useSampleText(text) {
+            document.getElementById('inputText').value = text;
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/stats');
+                const stats = await response.json();
+                const container = document.getElementById('statsContent');
+                
+                container.innerHTML = `
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4>${stats.total_detections}</h4>
+                            <small>Total Detections</small>
+                        </div>
+                        <div class="col-6">
+                            <h4>${(stats.average_confidence * 100).toFixed(1)}%</h4>
+                            <small>Avg Confidence</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <h6>Most Common:</h6>
+                        <span class="badge bg-light text-dark">${stats.most_common_language}</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load history
+        async function loadHistory() {
+            try {
+                const response = await fetch('/history?limit=10');
+                const data = await response.json();
+                const container = document.getElementById('historyContent');
+                
+                if (data.history.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No detection history yet.</p>';
+                    return;
+                }
+                
+                container.innerHTML = data.history.map(item => `
+                    <div class="history-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <small class="text-muted">${new Date(item.created_at).toLocaleString()}</small>
+                                <p class="mb-1">${item.text.substring(0, 50)}${item.text.length > 50 ? '...' : ''}</p>
+                            </div>
+                            <span class="badge bg-primary language-badge">${item.detected_language}</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress-bar" style="width: ${item.confidence * 100}%"></div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        // Handle single detection
+        document.getElementById('detectionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const text = document.getElementById('inputText').value.trim();
+            const threshold = parseFloat(document.getElementById('confidenceThreshold').value);
+            
+            if (!text) {
+                alert('Please enter some text to analyze.');
+                return;
+            }
+            
+            // Show loading
+            document.querySelector('.loading-spinner').style.display = 'block';
+            document.querySelector('.result-card').style.display = 'none';
+            
+            try {
+                const response = await fetch('/detect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        threshold: threshold
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Hide loading
+                document.querySelector('.loading-spinner').style.display = 'none';
+                
+                // Show results
+                const resultContainer = document.getElementById('detectionResult');
+                resultContainer.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Primary Detection:</h6>
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge bg-success language-badge me-2">${result.detected_language}</span>
+                                <span class="text-muted">${(result.confidence * 100).toFixed(1)}% confidence</span>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar bg-success confidence-bar" style="width: ${result.confidence * 100}%"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>All Languages:</h6>
+                            ${result.all_languages.map(lang => `
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="badge bg-secondary language-badge">${lang.language_name}</span>
+                                    <small>${(lang.confidence * 100).toFixed(1)}%</small>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ${result.message ? `<div class="alert alert-warning mt-3">${result.message}</div>` : ''}
+                `;
+                
+                document.querySelector('.result-card').style.display = 'block';
+                
+                // Reload stats and history
+                loadStats();
+                loadHistory();
+                
+            } catch (error) {
+                document.querySelector('.loading-spinner').style.display = 'none';
+                alert('Error detecting language: ' + error.message);
+            }
+        });
+
+        // Handle batch processing
+        document.getElementById('batchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const texts = document.getElementById('batchTexts').value.trim().split('\n').filter(t => t.trim());
+            const threshold = parseFloat(document.getElementById('confidenceThreshold').value);
+            
+            if (texts.length === 0) {
+                alert('Please enter some texts to analyze.');
+                return;
+            }
+            
+            const resultsContainer = document.getElementById('batchResults');
+            resultsContainer.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Processing...</div>';
+            
+            try {
+                const response = await fetch('/detect/batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        texts: texts,
+                        threshold: threshold
+                    })
+                });
+                
+                const data = await response.json();
+                
+                resultsContainer.innerHTML = data.results.map((item, index) => `
+                    <div class="border rounded p-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <strong>Text ${index + 1}:</strong> ${item.text.substring(0, 50)}${item.text.length > 50 ? '...' : ''}
+                            </div>
+                            <span class="badge bg-primary language-badge">${item.result.detected_language}</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress-bar" style="width: ${item.result.confidence * 100}%"></div>
+                        </div>
+                        <small class="text-muted">${(item.result.confidence * 100).toFixed(1)}% confidence</small>
+                    </div>
+                `).join('');
+                
+                // Reload stats and history
+                loadStats();
+                loadHistory();
+                
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSampleTexts();
+            loadStats();
+            loadHistory();
+        });
+    </script>
+</body>
+</html>
